@@ -12,6 +12,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import math
+import json
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -26,8 +27,10 @@ csrf = CSRFProtect(app)
 limiter = Limiter(app)
 CORS(app)
 
+service_account_info = json.loads(os.getenv('FIREBASE_CREDENTIALS_JSON'))
+
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate(os.getenv('FIREBASE_CREDENTIALS_PATH'))
+cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred,{
     'databaseURL': "https://tunnel-ac8de-default-rtdb.firebaseio.com/"
 })
@@ -391,7 +394,6 @@ def check_train_status():
     except Exception as e:
         print(f"Error updating train status: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
-
 
 
 if __name__ == "__main__":
