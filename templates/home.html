@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunnel Visualization</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <!-- Notification -->
+            <div class="notification" id="notification">
+                <img src="{{ url_for('static', filename='img/notification.png') }}" class="notification-bell"
+                    onclick="toggleNotifications()" />
+                <div class="notification-list" id="notificationList" style="display: none;">
+                    <h6>Notifications</h6>
+                    <ul id="notificationsUl"></ul>
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="profile" id="profile">
+                <img src="{{ url_for('static', filename='img/user.png') }}" alt="User Profile" class="profile-img"
+                    onclick="toggleProfile()" />
+                <div class="profile-menu" id="profileMenu" style="display: none;">
+                    <input type="hidden" name="profile_csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Fetched profile info will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="particles-js"></div>
+
+    <div class="tunnel-container">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h1 class="animate__animated animate__fadeIn">Tunnels List</h1>
+        <input type="hidden" id="userId" value="{{ session['user_id'] }}">
+        <div class="d-flex flex-wrap justify-content-center" id="tunnel-list">
+            <!-- Dynamically inserted tunnels will go here -->
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2024 Tunnel Visualization Project</p>
+    </footer>
+
+    <script>
+        // Store user ID globally (Assuming the user ID is passed from the server-side using a templating engine like Jinja2)
+        var userId = "{{ user_id | escape }}";  // Safely output user_id
+        console.log("User ID:", userId); // Debugging // Replace {{ user_id }} with actual server-side template logic
+
+        // Function to get the logged-in user's ID
+        function getUserId() {
+            return userId;
+        }
+
+        // Function to toggle the notification dropdown
+        function toggleNotifications() {
+            const notificationList = document.getElementById('notificationList');
+            notificationList.style.display = notificationList.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Fetch user profile details from the backend
+        function fetchUserDetails() {
+            const csrfToken = $('input[name="profile_csrf_token"]').val();
+            $.ajax({
+                url: '/get_user_details',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                },
+                success: function (response) {
+                    if (response.error) {
+                        alert(response.error);
+                        return;
+                    }
+
+                    const { name, username, email, locopilotid, train_status } = response;
+                    $('#profileMenu').html(`
+                        <p><strong>Name: ${name}</strong></p>
+                        <p>Username: ${username}</p>
+                        <p>Email: ${email}</p>
+                        <p>Locopilot ID: ${locopilotid}</p>
+                        <p>Train Status: ${train_status}</p>
+                        <button onclick="signOut()" class="btn btn-danger">Sign Out</button>
+                    `);
+                },
+                error: function (error) {
+                    console.error('Error fetching user details:', error);
+                }
+            });
+        }
+
+        // Automatically fetch user profile when the page loads
+        $(document).ready(function () {
+            fetchUserDetails();
+        });
+
+        // Initialize particles effect
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 40 },
+                color: { value: "#ffffff" },
+                shape: { type: "circle" },
+                opacity: { value: 0.3 },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: "#ffffff", opacity: 0.3, width: 0.1 },
+                move: { enable: true, speed: 1 }
+            },
+            interactivity: {
+                events: {
+                    onhover: { enable: true, mode: "repulse" },
+                    onclick: { enable: true, mode: "push" }
+                }
+            },
+            retina_detect: true,
+        });
+
+        // Function to fetch tunnels based on the user's location
+        function fetchTunnels(userLat, userLon) {
+            const csrfToken = $('input[name="csrf_token"]').val();
+            const userId = $('#userId').val();  // Get user ID from the hidden input field
+
+            if (!userId) {
+                console.error('User ID is missing!');
+                return;  // Stop further execution if userId is not present
+            }
+
+            $.ajax({
+                url: '/get_tunnels',
+                type: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                contentType: 'application/json',
+                data: JSON.stringify({ user_lat: userLat, user_lon: userLon }),
+                success: function (response) {
+                    if (response.tunnels && response.tunnels.length > 0) {
+                        updateTunnelsUI(response.tunnels);  // Update the UI with tunnels
+                        response.tunnels.forEach(tunnelObj => {
+                            console.log(tunnelObj);
+                            const tunnelId = tunnelObj.tunnel?.id;
+                            const distanceToFence = tunnelObj.distance_to_geofence_border;
+                            const radius = tunnelObj.tunnel?.radius;
+                            console.log(userId, tunnelId, distanceToFence, radius);
+                            updateStatus(userId, tunnelId, distanceToFence, radius);
+                        });
+
+
+                    } else {
+                        console.warn('No tunnels found near the user.');
+                        // Optionally, update the UI to show no tunnels found
+                    }
+                },
+                error: function (error) {
+                    console.error('Error fetching tunnels:', error);
+                    // Optionally, update the UI to notify the user about the error
+                }
+            });
+        }
+
+        async function updateStatus(userId, tunnelId, distance, radius) {
+            const csrfToken = $('input[name="csrf_token"]').val(); // Ensure CSRF token is fetched
+
+            try {
+                const response = await fetch('/check-train-status', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',  // Fix the typo here
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        tunnelId: tunnelId,
+                        distanceBetweenUserAndGeofence: distance,
+                        radius: radius,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`); // Handle HTTP errors
+                }
+
+                const result = await response.json();
+                console.log(result.message);  // Update the status message on the UI
+
+            } catch (error) {
+                console.error('Error updating status:', error);
+                
+            }
+        }
+
+        // Function to update the tunnel UI
+        function updateTunnelsUI(tunnels) {
+            const tunnelsContainer = $('#tunnel-list');
+            tunnelsContainer.empty();
+
+            tunnels.forEach((tunnelData, index) => {
+                const distanceText = tunnelData.distance_to_geofence_border ?
+                    `Distance to Geofence: <span style="color: yellow;">${tunnelData.distance_to_geofence_border.toFixed(2)} KM</span>` :
+                    'Distance to Geofence: <span style="color: red;">Unknown</span>';
+
+                // Apply the blinking-card class to the first card (index 0)
+                const blinkingClass = index === 0 ? 'blinking-card' : '';
+
+                tunnelsContainer.append(`
+                    <div class="tunnel-card m-3 ${blinkingClass}">
+                        <img src="${tunnelData.tunnel.tunnelImage_url}" alt="${tunnelData.tunnel.name}" class="img-fluid" style="border-radius: 10px;" />
+                        <h2 class="card-title">${tunnelData.tunnel.name}</h2>
+                        <p>Length: ${tunnelData.tunnel.length || 'Unknown'} KM</p>
+                        <p>${distanceText}</p>
+                        <a href="operation" class="learn-more btn btn-primary">Operations</a>
+                    </div>
+                `);
+            });
+        }
+
+
+        // Function to get the user's location and fetch tunnels
+        function getUserLocation() {
+            fetchUserDetails();
+            const userId = getUserId(); // Now this function will correctly return the logged-in user's ID
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLon = position.coords.longitude;
+                        fetchTunnels(userLat, userLon, userId);
+                    },
+                    (error) => {
+                        console.error('Error getting location:', error);
+                        alert("Unable to retrieve your location. Please check your settings.");
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Automatically fetch the user's location and tunnels every 5 seconds
+        setInterval(getUserLocation, 15000);
+
+        // Function to calculate distance between two latitude/longitude points using the Haversine formula
+        // Function to toggle the profile dropdown
+        function toggleProfile() {
+            const profileMenu = document.getElementById('profileMenu');
+            profileMenu.style.display = profileMenu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Function to sign out the user
+        function signOut() {
+            window.location.href = '/logout';
+        }
+    </script>
+</body>
+
+</html>

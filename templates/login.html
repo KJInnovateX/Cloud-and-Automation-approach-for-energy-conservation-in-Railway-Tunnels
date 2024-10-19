@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locopilot Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="form-container">
+        <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+            {{ form.hidden_tag() }}  <!-- This includes the CSRF token -->
+            <h2>Locopilot Login</h2>
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username(class="form-control", required=True) }}  <!-- Use Flask-WTF form field -->
+            </div>
+            <div class="form-group">
+                <label for="aadhar_no">Aadhaar Number</label>
+                {{ form.aadhar_no(class="form-control", required=True) }}  <!-- Use Flask-WTF form field -->
+                <span class="error-msg" id="aadharError"></span>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(class="form-control", required=True) }}  <!-- Use Flask-WTF form field -->
+                <span class="error-msg" id="passwordError"></span>
+            </div>
+            <button type="submit">Login</button>
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+            <p class="error-msg" id="loginError"></p> <!-- Display errors dynamically -->
+        </form>
+    </div>
+
+    <!-- Notification Window -->
+    <center>
+    <div id="notificationWindow" class="notification" style="display: {% if notification_message %} block {% else %} none {% endif %};">
+        <p id="notificationMessage">{{ notification_message }}</p>
+    </div></center>
+
+    <script>
+    // Validate the form before submission
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
+        let valid = true; // Flag for validation
+        const aadhaarNumber = document.querySelector('input[name="aadhar_no"]').value;
+        const password = document.querySelector('input[name="password"]').value;
+        const aadhaarError = document.getElementById('aadharError');
+        const passwordError = document.getElementById('passwordError');
+        
+        // Reset error messages
+        aadhaarError.textContent = '';
+        passwordError.textContent = '';
+
+        // Validate Aadhaar number (should be 12 digits)
+        const aadhaarRegex = /^\d{12}$/;
+        if (!aadhaarRegex.test(aadhaarNumber)) {
+            aadhaarError.textContent = 'Aadhaar number must be exactly 12 digits.';
+            valid = false; // Set flag to false
+        }
+
+        // Validate password (at least 8 characters, must include a number and a special character)
+       
+
+        // If invalid, prevent form submission
+        if (!valid) {
+            event.preventDefault(); // Prevent form submission
+        }
+    });
+
+    // Show and hide the notification based on message presence
+    const notificationWindow = document.getElementById('notificationWindow');
+
+    // Automatically hide the notification after 5 seconds if it is displayed
+    if (notificationWindow.style.display === 'block') {
+        // Automatically hide after a set timeout
+        setTimeout(() => {
+            notificationWindow.classList.add('fade-out'); // Add fade-out class
+            setTimeout(() => {
+                notificationWindow.style.display = 'none'; // Hide it after fade-out
+                notificationWindow.classList.remove('fade-out'); // Reset class
+            }, 500); // Match timeout with CSS transition duration
+        }, 5000); // Show for 5 seconds
+    }
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

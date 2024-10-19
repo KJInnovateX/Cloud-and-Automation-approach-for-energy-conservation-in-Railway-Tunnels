@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locopilot Registration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <div class="form-container">
+        <form id="registrationForm" method="POST" enctype="multipart/form-data" action="{{ url_for('register') }}">
+            {{ form.hidden_tag() }}
+            <h2>Locopilot Registration</h2>
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                {{ form.name(class="form-control", id="name") }}
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username(class="form-control", id="username") }}
+            </div>
+            <div class="form-group">
+                <label for="email">Email ID</label>
+                {{ form.email(class="form-control", id="email") }}
+            </div>
+            <div class="form-group">
+                <label for="aadhar">Aadhar No</label>
+                {{ form.aadhar(class="form-control", id="aadhar", maxlength="12") }}
+                <span class="error-msg" id="aadharError"></span>
+            </div>
+            <div class="form-group">
+                <label for="locopilotid">Locopilot ID</label>
+                {{ form.locopilotid(class="form-control", id="locopilotid") }}
+            </div>
+            <div class="form-group">
+                <label for="govtID">Upload Government ID</label>
+                {{ form.govtID(class="form-control", id="govtID", accept="image/*, .pdf") }}
+                <span class="error-msg" id="govtIDError"></span>
+                <div id="govtIDPreview" class="preview"></div>
+            </div>
+            <div class="form-group">
+                <label for="region">Region</label>
+                {{ form.region(class="form-control", id="region") }}
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(class="form-control", id="password") }}
+                <span class="error-msg" id="passwordError"></span>
+            </div>
+            <button type="submit">Register</button>
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+        </form>
+    </div>
+
+    
+     <!-- Notification Window -->
+      <center>
+     <div id="notificationWindow" class="notification" style="display: {% if notification_message %} block {% else %} none {% endif %};">
+        <p id="notificationMessage">{{ notification_message }}</p>
+    </div></center>
+
+    <script>
+    // Show and hide the notification based on message presence
+    const notificationWindow = document.getElementById('notificationWindow');
+
+    // Automatically hide the notification after 5 seconds if it is displayed
+    if (notificationWindow.style.display === 'block') {
+        // Automatically hide after a set timeout
+        setTimeout(() => {
+            notificationWindow.classList.add('fade-out'); // Add fade-out class
+            setTimeout(() => {
+                notificationWindow.style.display = 'none'; // Hide it after fade-out
+                notificationWindow.classList.remove('fade-out'); // Reset class
+            }, 500); // Match timeout with CSS transition duration
+        }, 5000); // Show for 5 seconds
+    }
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>
