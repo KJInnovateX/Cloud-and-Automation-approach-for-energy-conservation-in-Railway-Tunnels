@@ -6,3 +6,4 @@ Flask-Limiter
 Flask-CORS
 python-dotenv
 gunicorn
+json
