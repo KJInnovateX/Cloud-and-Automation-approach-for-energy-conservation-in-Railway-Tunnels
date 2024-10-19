@@ -394,5 +394,5 @@ def check_train_status():
 
 
 
-if __name__ == '__main__':
-    app.run(ssl_context='adhoc')
+if __name__ == "__main__":
+    app.run()
