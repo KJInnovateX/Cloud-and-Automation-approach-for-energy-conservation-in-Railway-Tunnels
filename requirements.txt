@@ -1,9 +1,9 @@
 Flask==2.3.2
-Flask-WTF==1.0.1  # This handles forms and CSRF protection
+Flask-WTF==1.0.1  # This replaces Flask-CSRF
 WTForms==3.0.1
 firebase-admin==6.0.0
 bcrypt==4.0.1
 Flask-Limiter==2.6.2
-Flask-CORS==3.1.0
+Flask-CORS==3.0.10  # Latest available stable version
 python-dotenv==1.0.0
 gunicorn==21.2.0
