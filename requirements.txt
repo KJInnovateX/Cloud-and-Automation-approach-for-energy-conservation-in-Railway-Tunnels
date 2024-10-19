@@ -7,4 +7,4 @@ Flask-Limiter==2.6.2
 Flask-CORS==3.0.10
 python-dotenv==1.0.0
 gunicorn==21.2.0
-Werkzeug==2.0.3
+Werkzeug==2.3.3  # Updated Werkzeug to a compatible version
