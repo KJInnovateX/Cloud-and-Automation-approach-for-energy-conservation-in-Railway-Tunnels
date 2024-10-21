@@ -396,5 +396,13 @@ def check_train_status():
         return jsonify({'message': 'Internal Server Error'}), 500
 
 
+#logout
+@app.route('/logout')
+def logout():
+    # Remove 'user_id' from session
+    session.pop('user_id', None)  # None is used to avoid errors if 'user_id' does not exist
+    return render_template('login.html')
+
+
 if __name__ == "__main__":
     app.run()
