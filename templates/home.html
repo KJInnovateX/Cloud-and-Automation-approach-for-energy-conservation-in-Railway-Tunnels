@@ -257,10 +257,27 @@
             profileMenu.style.display = profileMenu.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Function to sign out the user
-        function signOut() {
-            window.location.href = '/logout';
+       // Function to sign out the user
+function signOut() {
+    fetch('/logout', {
+        method: 'POST',  // Use POST for logout to ensure it's not cached by browsers
+        headers: {
+            'Content-Type': 'application/json'
         }
+    })
+    .then(response => {
+        if (response.ok) {
+            // Redirect to the login page after successful logout
+            window.location.href = '/login';
+        } else {
+            console.error('Logout failed.');
+        }
+    })
+    .catch(error => {
+        console.error('Error during logout:', error);
+    });
+}
+
     </script>
 </body>
 
