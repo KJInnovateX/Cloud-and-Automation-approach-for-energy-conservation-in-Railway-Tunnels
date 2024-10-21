@@ -397,7 +397,7 @@ def check_train_status():
 
 
 #logout
-@app.route('/logout',method=['Post'])
+@app.route('/logout',method=['POST'])
 def logout():
     # Remove 'user_id' from session
     session.pop('user_id', None)  # None is used to avoid errors if 'user_id' does not exist
