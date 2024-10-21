@@ -258,17 +258,18 @@
         }
 
        // Function to sign out the user
+// Function to sign out the user
 function signOut() {
     fetch('/logout', {
-        method: 'POST',  // Use POST for logout to ensure it's not cached by browsers
+        method: 'POST',  // Use POST for logout
         headers: {
             'Content-Type': 'application/json'
         }
     })
     .then(response => {
         if (response.ok) {
-            // Redirect to the login page after successful logout
-            window.location.href = '/login';
+            // When logout is successful, reload the page to show the rendered login page
+            window.location.reload();
         } else {
             console.error('Logout failed.');
         }
