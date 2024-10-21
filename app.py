@@ -397,10 +397,7 @@ def check_train_status():
 
 
 #logout
-@app.route('/logout', methods=['POST'])
-def logout():
-    session.pop('user_id', None)  # Remove user_id from session
-    return render_template('login.html')  # Render the login page after logout
+
 
 
 
