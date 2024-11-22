@@ -321,52 +321,50 @@ def get_user_details():
         logging.error(f"Error fetching user details: {e}")
         return jsonify({'error': 'Failed to fetch user details'}), 500
     
-# Function to update Firebase based on distance and geofence
 def update_train_status(user_id, tunnel_id, distance, geofence_radius):
-    # Check if the distance is within the geofence radius
-    if distance <= geofence_radius:
-        # Get the current tunnel data
-        tunnel_ref = firebase_admin.db.reference(f'/{tunnel_id}')
-        tunnel_data = tunnel_ref.get()
+    # Reference to the tunnel in the database
+    radius=geofence_radius/1000
+    tunnel_ref = firebase_admin.db.reference(f'/{tunnel_id}')
+    tunnel_data = tunnel_ref.get()
 
-        # Check the current status and the user's previous action
-        current_status = tunnel_data.get('status', 'OFF')
-        user_previous_status = tunnel_data.get(user_id, 0)
+    # If the tunnel does not exist, initialize it
+    if tunnel_data is None:
+        tunnel_data = {
+            'status': 'OFF',
+            'train_cnt': 0
+        }
+        tunnel_ref.set(tunnel_data)  # Create the tunnel with default values
+        print(f"Initialized tunnel {tunnel_id} with default values.")
 
+    # Retrieve current status and user data
+    current_status = tunnel_data.get('status', 'OFF')
+    user_previous_status = tunnel_data.get(user_id, 0)
+    train_cnt = tunnel_data.get('train_cnt', 0)
+
+    if distance <= radius:
+        # User is inside the geofence
         if current_status == 'OFF' or user_previous_status == 0:
-            # Update status to ON
+            # Turn ON the train status
             new_status = 'ON'
-            train_cnt = tunnel_data.get('train_cnt', 0) + 1
+            train_cnt += 1
             user_status = 1
         else:
-            # User is already ON, can't turn ON again
+            # User already turned ON the status
             return {'message': 'User has already turned ON the train status.'}
-
     else:
-        # Get the current tunnel data
-        tunnel_ref = firebase_admin.db.reference(f'/{tunnel_id}')
-        tunnel_data = tunnel_ref.get()
-
-        # Check the current status and the user's previous action
-        current_status = tunnel_data.get('status', 'ON')
-        user_previous_status = tunnel_data.get(user_id, 1)
-        train_cnt = tunnel_data.get('train_cnt', 0)
-
+        # User is outside the geofence
         if current_status == 'ON' and user_previous_status == 1:
             if train_cnt == 1:
-                # Last user turning OFF the train status, set status to OFF
+                # Last user turning OFF the train status
                 new_status = 'OFF'
                 train_cnt = 0
-                user_status = 0
-            elif train_cnt > 1:
-                # Decrease train count but keep status ON
+            else:
+                # Decrease train count, keep status ON
                 new_status = 'ON'
                 train_cnt -= 1
-                user_status = 0
-            else:
-                return {'message': 'Error: Train count is invalid.'}
+            user_status = 0
         else:
-            # User is already OFF, can't turn OFF again
+            # User already turned OFF the status
             return {'message': 'User has already turned OFF the train status.'}
 
     # Update the tunnel data with the new status and train count
@@ -386,20 +384,18 @@ def check_train_status():
     user_id = data.get('userId')
     tunnel_id = data.get('tunnelId')
     distance = float(data.get('distanceBetweenUserAndGeofence'))
-    radius=data.get('radius')
+    radius = data.get('radius')
 
     try:
-        result = update_train_status(user_id, tunnel_id, distance,radius)
+        # Log input data for debugging
+        print(f"Received data: user_id={user_id}, tunnel_id={tunnel_id}, distance={distance} Km, radius={radius/1000} Km")
+
+        result = update_train_status(user_id, tunnel_id, distance, radius)
         return jsonify(result), 200
     except Exception as e:
         print(f"Error updating train status: {e}")
-        return jsonify({'message': 'Internal Server Error'}), 500
+        return jsonify({'message': f'Internal Server Error: {str(e)}'}), 500
 
 
-#logout
-
-
-
-
-if __name__ == "__main__":
-    app.run()
+if __name__ == '__main__':
+    app.run(ssl_context='adhoc')
