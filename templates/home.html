@@ -248,7 +248,7 @@
         }
 
         // Automatically fetch the user's location and tunnels every 5 seconds
-        setInterval(getUserLocation, 5000);
+        setInterval(getUserLocation, 1000);
 
         // Function to calculate distance between two latitude/longitude points using the Haversine formula
         // Function to toggle the profile dropdown
@@ -257,28 +257,10 @@
             profileMenu.style.display = profileMenu.style.display === 'none' ? 'block' : 'none';
         }
 
-       // Function to sign out the user
-// Function to sign out the user
-function signOut() {
-    fetch('/logout', {
-        method: 'POST',  // Use POST for logout
-        headers: {
-            'Content-Type': 'application/json'
+        // Function to sign out the user
+        function signOut() {
+            window.location.href = '/logout';
         }
-    })
-    .then(response => {
-        if (response.ok) {
-            // When logout is successful, reload the page to show the rendered login page
-            window.location.reload();
-        } else {
-            console.error('Logout failed.');
-        }
-    })
-    .catch(error => {
-        console.error('Error during logout:', error);
-    });
-}
-
     </script>
 </body>
 
