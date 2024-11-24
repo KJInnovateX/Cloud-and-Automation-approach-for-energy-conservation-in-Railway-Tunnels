@@ -70,7 +70,20 @@ def index():
 
 @app.route('/operation')
 def operation():
-    return render_template('operation.html')
+    # Retrieve userID and tunnelID from the query parameters
+    user_id = request.args.get('userID')
+    tunnel_id = request.args.get('tunnelID')
+    tunnelName=request.args.get('tunnelName')
+    length=request.args.get('length')
+    geofence=request.args.get('geofence')
+    geofence_r=request.args.get('geofence_r')
+
+    if not user_id or not tunnel_id:
+        # Redirect to an error page or return a friendly error message
+        return render_template('error.html', message="User ID and Tunnel ID are required"), 400
+
+    # Pass userID and tunnelID to the template
+    return render_template('operation.html', user_id=user_id, tunnel_id=tunnel_id, tunnelName=tunnelName, length=length, geofence=geofence, geofence_r=geofence_r)
 
 @app.route('/home')
 def home():
@@ -225,7 +238,8 @@ def check_geofence(user_location, train_status, tunnels):
                 tunnel_distances.append({
                     'tunnel': tunnel,
                     'distance_to_geofence_border': distance_to_border,
-                    'train_status': train_status
+                    'train_status': train_status,
+                    'geofence':geofence
                 })
 
                 # Notification for close tunnels
@@ -395,6 +409,146 @@ def check_train_status():
     except Exception as e:
         print(f"Error updating train status: {e}")
         return jsonify({'message': f'Internal Server Error: {str(e)}'}), 500
+    
+
+# Operation page route
+
+@app.route('/operation/fetch-tunnel-data', methods=['POST'])
+def fetch_tunnel_data():
+    data = request.json
+    tunnel_id = data.get('tunnelID')
+    
+
+    if not tunnel_id:
+        return jsonify({'success': False, 'message': 'Tunnel ID is required.'}), 400
+
+    try:
+        # Fetch data from Firebase Realtime Database
+        tunnel_ref = firebase_admin.db.reference(f'/{tunnel_id}')
+        tunnel_data = tunnel_ref.get()
+
+        if not tunnel_data:
+            return jsonify({'success': False, 'message': 'Tunnel not found.'}), 404
+
+        return jsonify({
+            'success': True,
+            'status': tunnel_data.get('status', 'OFF'),
+            'train_cnt': tunnel_data.get('train_cnt', 0)
+        }), 200
+    except Exception as e:
+        print(f"Error fetching tunnel data: {e}")
+        return jsonify({'success': False, 'message': f'Internal Server Error: {str(e)}'}), 500
+    
+def update_manual_status(user_id, tunnel_id, action):
+    # Reference to the tunnel in the database
+    tunnel_ref = firebase_admin.db.reference(f'/{tunnel_id}')
+    tunnel_data = tunnel_ref.get()
+
+    # If the tunnel does not exist, return an error
+    if tunnel_data is None:
+        return {'success': False, 'message': 'Tunnel does not exist.'}
+
+    # Fetch the current status and train count
+    current_status = tunnel_data.get('status', 'OFF')
+    train_cnt = tunnel_data.get('train_cnt', 0)
+    
+
+    # Validate user input and toggle the status
+    if action == 'ON':
+        if current_status == 'ON':
+            return {'success': False, 'message': 'Light is already ON.'}
+        new_status = 'ON'
+        train_cnt += 1
+    elif action == 'OFF':
+        if current_status == 'OFF':
+            return {'success': False, 'message': 'Light is already OFF.'}
+        new_status = 'OFF'
+        train_cnt = max(train_cnt - 1, 0)  # Ensure train count doesn't go negative
+    else:
+        return {'success': False, 'message': 'Invalid action. Use "ON" or "OFF".'}
+
+    # Update the database
+    tunnel_ref.update({
+        'status': new_status,
+        'train_cnt': train_cnt
+    })
+
+    return {'success': True, 'message': f'Light status updated to {new_status}. Train count: {train_cnt}'}
+
+@app.route('/operation/manual-operation', methods=['POST'])
+def manual_operation():
+    data = request.json
+    user_id = data.get('userID')
+    tunnel_id = data.get('tunnelID')
+    action = data.get('action')  # ON or OFF
+
+    # Validate input
+    if not user_id or not tunnel_id or not action:
+        return jsonify({'success': False, 'message': 'Missing required parameters.'}), 400
+
+    try:
+        # Update the status manually
+        result = update_manual_status(user_id, tunnel_id, action)
+        return jsonify(result), 200 if result['success'] else 400
+    except Exception as e:
+        print(f"Error in manual operation: {e}")
+        return jsonify({'success': False, 'message': f'Internal Server Error: {str(e)}'}), 500
+
+
+# sos request 
+
+@app.route('/sos/submit', methods=['POST'])
+def submit_sos_request():
+    notification_message = None  # Initialize notification message
+    
+    # Check if the incoming request is a POST request
+    if request.method == 'POST':
+        # Extract data from the JSON payload (assuming the request body contains JSON data)
+        data = request.get_json()
+
+        # Validate required fields
+        required_fields = ['issue', 'issueType', 'tunnelID', 'tunnelName', 
+                           'locopilotID', 'lastLocation', 
+                           'requestTime', 'status']
+
+        # Check if all required fields are present in the request data
+        for field in required_fields:
+            if field not in data:
+                notification_message = f"Missing field: {field}"
+                return jsonify({"success": False, "message": notification_message}), 400
+
+        # Ensure lastLocation is a valid array
+        if not isinstance(data['lastLocation'], list):
+            notification_message = "Invalid data type for lastLocation. Must be an array."
+            return jsonify({"success": False, "message": notification_message}), 400
+
+        # If all required fields are present, we proceed to store the request in Firestore
+        sos_data = {
+            'description': data['issue'],
+            'issueType': data['issueType'],
+            'tunnelId': data['tunnelID'],
+            'tunnelName': data['tunnelName'],
+            'locopilotId': data['locopilotID'],
+            'lastLocation': data['lastLocation'],  # Save the location array
+            'status': data['status'],
+            'trainId':"111",
+            'locopilotName':"Karan Jadhav",
+            'requestTime': firestore.SERVER_TIMESTAMP  # Optionally add a timestamp
+        }
+
+        # Store the SOS request data in Firestore under the 'sos_requests' collection
+        try:
+            db.collection('sos_requests').add(sos_data)
+            notification_message = "SOS request submitted successfully!"
+            return jsonify({"success": True, "message": notification_message}), 200
+        except Exception as e:
+            notification_message = f"Error submitting SOS request: {str(e)}"
+            return jsonify({"success": False, "message": notification_message}), 500
+
+    # If the request is not a POST request, return an error
+    return jsonify({"success": False, "message": "Invalid request method."}), 405
+
+
 
 
 if __name__ == '__main__':
