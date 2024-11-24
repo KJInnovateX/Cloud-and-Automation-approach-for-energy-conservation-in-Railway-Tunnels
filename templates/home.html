@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tunnel Visualization</title>
-        <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/tunnel-ac8de.appspot.com/o/icons%2Ficonn.png?alt=media&token=02b81855-26b5-4023-8d7a-53cd8c9e09ac" type="image/x-icon">
+    <link rel="icon"
+        href="https://firebasestorage.googleapis.com/v0/b/tunnel-ac8de.appspot.com/o/icons%2Ficonn.png?alt=media&token=02b81855-26b5-4023-8d7a-53cd8c9e09ac"
+        type="image/x-icon">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
@@ -153,6 +155,7 @@
                             const tunnelId = tunnelObj.tunnel?.id;
                             const distanceToFence = tunnelObj.distance_to_geofence_border;
                             const radius = tunnelObj.tunnel?.radius;
+                            const geofence=tunnelObj.tunnel?.geofence;
                             console.log(userId, tunnelId, distanceToFence, radius);
                             updateStatus(userId, tunnelId, distanceToFence, radius);
                         });
@@ -197,7 +200,7 @@
 
             } catch (error) {
                 console.error('Error updating status:', error);
-                
+
             }
         }
 
@@ -207,6 +210,8 @@
             tunnelsContainer.empty();
 
             tunnels.forEach((tunnelData, index) => {
+                const trainStatus = (tunnelData.distance_to_geofence_border < tunnelData.radius)
+                ? "Train is in Tunnel": "Train is outside Tunnel";
                 const distanceText = tunnelData.distance_to_geofence_border ?
                     `Distance to Geofence: <span style="color: yellow;">${tunnelData.distance_to_geofence_border.toFixed(2)} KM</span>` :
                     'Distance to Geofence: <span style="color: red;">Unknown</span>';
@@ -220,7 +225,8 @@
                         <h2 class="card-title">${tunnelData.tunnel.name}</h2>
                         <p>Length: ${tunnelData.tunnel.length || 'Unknown'} KM</p>
                         <p>${distanceText}</p>
-                        <a href="operation" class="learn-more btn btn-primary">Operations</a>
+                        <p>${trainStatus}</p>
+                        <a href="operation?userID=${userId}&tunnelID=${tunnelData.tunnel.id}&tunnelName=${tunnelData.tunnel.name}&length=${tunnelData.tunnel.length}&geofence=${tunnelData.tunnel.geofence}&geofence_r=${tunnelData.tunnel.radius}" class="learn-more btn btn-primary">Operations</a>
                     </div>
                 `);
             });
