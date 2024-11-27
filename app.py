@@ -194,6 +194,12 @@ def login():
 
     return render_template('login.html', form=form, notification_message=notification_message)
 
+#logout
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 
 # HOME Page routes and functions
 
