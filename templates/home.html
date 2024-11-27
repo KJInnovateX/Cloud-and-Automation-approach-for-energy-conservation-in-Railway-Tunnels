@@ -210,7 +210,7 @@
             tunnelsContainer.empty();
 
             tunnels.forEach((tunnelData, index) => {
-                const trainStatus = ((tunnelData.distance_to_geofence_border*1000) <=tunnelData.radius)
+                const trainStatus = ((tunnelData.distance_to_geofence_border*1000) <= tunnelData.radius)
                 ? "Train is in Tunnel": "Train is outside Tunnel";
                 const distanceText = tunnelData.distance_to_geofence_border ?
                     `Distance to Geofence: <span style="color: yellow;">${tunnelData.distance_to_geofence_border.toFixed(2)} KM</span>` :
