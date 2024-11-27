@@ -239,7 +239,8 @@ def check_geofence(user_location, train_status, tunnels):
                     'tunnel': tunnel,
                     'distance_to_geofence_border': distance_to_border,
                     'train_status': train_status,
-                    'geofence':geofence
+                    'geofence':geofence,
+                    'radius':redius
                 })
 
                 # Notification for close tunnels
